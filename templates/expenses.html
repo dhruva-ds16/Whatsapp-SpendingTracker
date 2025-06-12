@@ -4,41 +4,208 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Spending Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
-        h1 { color: #5a5a5a; }
-        table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
-        th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
-        thead { background-color: #007bff; color: white; }
-        tbody tr:nth-child(even) { background-color: #f2f2f2; }
-        tbody tr:hover { background-color: #ddd; }
+        /* --- Dark Mode Palette --- */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            margin: 0; 
+            background-color: #121212; /* Dark background */
+            color: #e0e0e0; /* Light text */
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 20px auto; 
+            padding: 20px; 
+        }
+        h1, h2 { 
+            color: #ffffff; 
+            text-align: center; 
+            margin-bottom: 25px;
+        }
+        .summary-cards { 
+            display: flex; 
+            justify-content: space-around; 
+            gap: 20px; 
+            margin-bottom: 30px; 
+        }
+        .card { 
+            background-color: #1e1e1e; /* Dark card background */
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+            padding: 20px; 
+            text-align: center; 
+            flex-grow: 1; 
+            border: 1px solid #333;
+        }
+        .card h2 { 
+            margin-top: 0; 
+            font-size: 18px; 
+            color: #a0a0a0; /* Muted text for card titles */
+        }
+        .card .amount { 
+            font-size: 28px; 
+            font-weight: bold; 
+            color: #ffffff; 
+        }
+        .chart-container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 30px; 
+            margin-bottom: 30px; 
+        }
+        .chart-box { 
+            background-color: #1e1e1e; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #333;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background-color: #1e1e1e; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #333;
+        }
+        th, td { 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #333; 
+            text-align: left; 
+        }
+        thead { 
+            background-color: #2a2a2a; /* Darker header for the table */
+            color: #ffffff; 
+        }
+        tbody tr:nth-child(even) { 
+            background-color: #242424; 
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            .summary-cards {
+                flex-direction: column;
+            }
+            .container {
+                padding: 10px;
+            }
+            h1 { font-size: 24px; }
+        }
     </style>
 </head>
 <body>
-    <h1>Spending Dashboard</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for expense in expenses %}
-            <tr>
-                <td>{{ expense['date'] }}</td>
-                <td>{{ expense['description'] }}</td>
-                <td>{{ expense['category'] }}</td>
-                <td>₹{{ "%.2f"|format(expense['amount']) }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="4">No expenses recorded yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="container">
+        <h1>Spending Dashboard</h1>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h2>Total Spent This Month</h2>
+                <p class="amount">₹{{ "%.2f"|format(dashboard_data.total_spent_this_month) }}</p>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-box">
+                <canvas id="categoryPieChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="budgetBarChart"></canvas>
+            </div>
+        </div>
+        
+        <h2>Recent Expenses</h2>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ expense.description }}</td>
+                    <td>{{ expense.category }}</td>
+                    <td>₹{{ "%.2f"|format(expense.amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No expenses recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const categoryData = JSON.parse('{{ dashboard_data.category_spending | tojson | safe }}');
+        const budgetData = JSON.parse('{{ dashboard_data.budget_status | tojson | safe }}');
+        
+        // --- Chart.js Dark Mode Configuration ---
+        Chart.defaults.color = '#e0e0e0'; // Default text color for charts
+
+        // --- 1. Pie Chart for Spending by Category ---
+        const categoryCtx = document.getElementById('categoryPieChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'pie',
+            data: {
+                labels: categoryData.map(item => item.category),
+                datasets: [{
+                    label: 'Spending by Category',
+                    data: categoryData.map(item => item.amount),
+                    backgroundColor: ['#c4302b', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } },
+                    title: { display: true, text: 'Spending by Category This Month', color: '#ffffff' }
+                }
+            }
+        });
+
+        // --- 2. Bar Chart for Budget vs. Spending ---
+        const budgetCtx = document.getElementById('budgetBarChart').getContext('2d');
+        new Chart(budgetCtx, {
+            type: 'bar',
+            data: {
+                labels: budgetData.map(item => item.category),
+                datasets: [
+                    {
+                        label: 'Spent',
+                        data: budgetData.map(item => item.spent_amount),
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Budget',
+                        data: budgetData.map(item => item.budget_amount),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } },
+                    title: { display: true, text: 'Budget vs. Spending', color: '#ffffff' }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { color: '#e0e0e0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#e0e0e0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

@@ -100,10 +100,14 @@ def whatsapp_reply():
 
 @app.route('/expenses')
 def show_expenses():
-    """Renders a web page with a table of all expenses."""
-    all_expenses = database.get_all_expenses()
-    return render_template('expenses.html', expenses=all_expenses)
-
+    """Renders the enhanced dashboard with charts and data."""
+    recent_expenses = database.get_all_expenses() # For the table
+    dashboard_data = database.get_dashboard_data() # For the charts and cards
+    return render_template(
+        'expenses.html', 
+        expenses=recent_expenses, 
+        dashboard_data=dashboard_data
+    )
 
 if __name__ == '__main__':
     # Use 0.0.0.0 to make it accessible on your network for homelab setup

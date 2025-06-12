@@ -103,3 +103,41 @@ def get_all_expenses():
         all_expenses = cur.fetchall()
     conn.close()
     return all_expenses
+
+# Add this new function to the end of database.py
+def get_dashboard_data():
+    """Gathers all data needed for the dashboard visualizations."""
+    conn = get_db_connection()
+    dashboard_data = {}
+    with conn.cursor(cursor_factory=DictCursor) as cur:
+        # 1. Total spending this month
+        cur.execute("SELECT SUM(amount) as total FROM expenses WHERE date_trunc('month', date) = date_trunc('month', current_date)")
+        dashboard_data['total_spent_this_month'] = cur.fetchone()['total'] or 0
+
+        # 2. Data for category pie chart (this month)
+        cur.execute("""
+            SELECT category, SUM(amount) as amount 
+            FROM expenses 
+            WHERE date_trunc('month', date) = date_trunc('month', current_date) 
+            GROUP BY category
+        """)
+        dashboard_data['category_spending'] = cur.fetchall()
+
+        # 3. Budget vs spending data
+        cur.execute("""
+            SELECT 
+                b.category, 
+                b.amount as budget_amount, 
+                COALESCE(e.spent_amount, 0) as spent_amount
+            FROM budget b
+            LEFT JOIN (
+                SELECT category, SUM(amount) as spent_amount 
+                FROM expenses 
+                WHERE date_trunc('month', date) = date_trunc('month', current_date)
+                GROUP BY category
+            ) e ON b.category = e.category
+        """)
+        dashboard_data['budget_status'] = cur.fetchall()
+
+    conn.close()
+    return dashboard_data
