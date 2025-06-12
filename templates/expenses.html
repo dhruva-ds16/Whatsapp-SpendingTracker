@@ -55,7 +55,7 @@
                         {% if percentage > 10 %}{{ "%.0f"|format(percentage) }}%{% endif %}
                     </div>
                 </div>
-
+                
             {% else %}
                 <p style="text-align: center;">No budgets set. Use the `budget` command to create one.</p>
             {% endfor %}
@@ -119,7 +119,6 @@
             const tbody = document.getElementById('expensesTbody');
             const rows = Array.from(tbody.rows);
             
-            // Get current sort direction from header, or default to 'asc'
             const header = table.tHead.rows[0].cells[columnIndex];
             const currentDir = header.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
             header.setAttribute('data-sort-dir', currentDir);
@@ -135,7 +134,7 @@
                     valB = new Date(cellB.textContent || cellB.innerText).getTime();
                 } else if (isNumeric) {
                     valA = parseFloat(cellA.textContent || cellA.innerText);
-                    valB = parseFloat(cellB.textContent || cellB.innerText);
+                    valB = (cellB.textContent || cellB.innerText).toLowerCase();
                 } else {
                     valA = (cellA.textContent || cellA.innerText).toLowerCase();
                     valB = (cellB.textContent || cellB.innerText).toLowerCase();
@@ -150,7 +149,6 @@
                 return 0;
             });
 
-            // Re-append sorted rows
             rows.forEach(row => tbody.appendChild(row));
         }
     </script>
