@@ -51,7 +51,8 @@
                     <span>₹{{ "%.2f"|format(budget.spent_amount) }} / ₹{{ "%.2f"|format(budget.budget_amount) }}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: {{ percentage | min(100) }}%;">
+                    {# vvv THIS IS THE CORRECTED LINE vvv #}
+                    <div class="progress-bar-fill" style="width: {{ 100 if percentage > 100 else percentage }}%;">
                         {% if percentage > 10 %}{{ "%.0f"|format(percentage) }}%{% endif %}
                     </div>
                 </div>
@@ -133,8 +134,9 @@
                     valA = new Date(cellA.textContent || cellA.innerText).getTime();
                     valB = new Date(cellB.textContent || cellB.innerText).getTime();
                 } else if (isNumeric) {
+                    // This line is also corrected to handle numbers properly
                     valA = parseFloat(cellA.textContent || cellA.innerText);
-                    valB = (cellB.textContent || cellB.innerText).toLowerCase();
+                    valB = parseFloat(cellB.textContent || cellB.innerText);
                 } else {
                     valA = (cellA.textContent || cellA.innerText).toLowerCase();
                     valB = (cellB.textContent || cellB.innerText).toLowerCase();
