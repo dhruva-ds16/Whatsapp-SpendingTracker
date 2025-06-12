@@ -10,7 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Initialize the database if it doesn't exist
-database.init_db()
+# database.init_db()
 
 # In app.py, replace the old function with this one
 @app.route('/whatsapp', methods=['POST'])
