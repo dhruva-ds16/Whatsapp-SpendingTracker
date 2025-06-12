@@ -104,9 +104,9 @@ def get_all_expenses():
     conn.close()
     return all_expenses
 
-# Add this new function to the end of database.py
+# In database.py, replace the old get_dashboard_data function
 def get_dashboard_data():
-    """Gathers all data needed for the dashboard visualizations."""
+    """Gathers all metrics and budget data needed for the dashboard."""
     conn = get_db_connection()
     dashboard_data = {}
     with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -114,15 +114,17 @@ def get_dashboard_data():
         cur.execute("SELECT SUM(amount) as total FROM expenses WHERE date_trunc('month', date) = date_trunc('month', current_date)")
         dashboard_data['total_spent_this_month'] = cur.fetchone()['total'] or 0
 
-        # 2. Data for category pie chart (this month)
+        # 2. Average spend per month
         cur.execute("""
-            SELECT category, SUM(amount) as amount 
-            FROM expenses 
-            WHERE date_trunc('month', date) = date_trunc('month', current_date) 
-            GROUP BY category
+            SELECT AVG(monthly_total) as average 
+            FROM (
+                SELECT SUM(amount) as monthly_total 
+                FROM expenses 
+                GROUP BY date_trunc('month', date)
+            ) as monthly_sums
         """)
-        dashboard_data['category_spending'] = cur.fetchall()
-
+        dashboard_data['average_monthly_spend'] = cur.fetchone()['average'] or 0
+        
         # 3. Budget vs spending data
         cur.execute("""
             SELECT 
@@ -136,6 +138,7 @@ def get_dashboard_data():
                 WHERE date_trunc('month', date) = date_trunc('month', current_date)
                 GROUP BY category
             ) e ON b.category = e.category
+            ORDER BY b.category
         """)
         dashboard_data['budget_status'] = cur.fetchall()
 
