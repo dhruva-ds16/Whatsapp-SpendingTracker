@@ -2,12 +2,19 @@ from flask import Flask, request, render_template
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 import os
-import re # Make sure 're' is imported
+import re
 import database
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# --- INITIALIZATION ADDED BACK ---
+# This will run once when the application starts up on Render.
+print("Application starting up: Initializing database...")
+database.init_db()
+print("Database initialization complete.")
+# --------------------------------
 
 # The message parser is now inside app.py
 def parse_message(message):
@@ -35,7 +42,7 @@ def parse_message(message):
     if message == 'report':
         return 'get_report', {}
 
-    # For getting help (New)
+    # For getting help
     if message == 'help':
         return 'show_help', {}
 
